@@ -242,12 +242,17 @@ class InstanceController extends AbstractController
                             }
                         }
                     }
+
+                    throw new TrassirException('Channel not found');
                 }
             )
             ->then(
                 function ($video) use ($response) {
                     $response->getBody()->write($video);
                     return $response;
+                },
+                function (TrassirException $e) {
+                    return new JsonResponse(['error' => $e->getMessage()], 404);
                 }
             );
     }

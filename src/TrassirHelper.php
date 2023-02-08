@@ -7,6 +7,7 @@ use AlexMorbo\React\Trassir\Traits\DBTrait;
 use AlexMorbo\Trassir\ConnectionOptions;
 use AlexMorbo\Trassir\Dto\Server;
 use AlexMorbo\Trassir\Trassir;
+use AlexMorbo\Trassir\TrassirException;
 use Clue\React\SQLite\DatabaseInterface;
 use Psr\Log\LoggerInterface;
 use React\Promise\PromiseInterface;
@@ -37,6 +38,10 @@ class TrassirHelper
         return $this->dbSearch('instances', ['id' => $instanceId])
             ->then(
                 function ($result) {
+                    if (empty($result)) {
+                        throw new TrassirException('Instance not found');
+                    }
+
                     $this->instances[$result[0]['id']] = new Instance(
                         $result[0], $this->getTrassirInstance($result[0])
                     );
