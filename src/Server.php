@@ -136,10 +136,10 @@ class Server extends Command
 
         echo 'Listening on ' . str_replace('tcp:', 'http:', $socket->getAddress()) . PHP_EOL;
 
-        $this->loop->addPeriodicTimer(5, function () {
+        $this->loop->addPeriodicTimer(300, function () {
             echo sprintf(
                 '[%s] Current usage %f mb, Max: %f mb' . PHP_EOL,
-                (new DateTime())->getTimestamp(),
+                (new DateTime())->format('Y-m-d H:i:s'),
                 round(memory_get_usage() / 1024 / 1024, 2) . ' mb',
                 round(memory_get_peak_usage() / 1024 / 1024, 2) . ' mb'
             );
