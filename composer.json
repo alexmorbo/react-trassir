@@ -1,0 +1,19 @@
+{
+    "type": "library",
+    "require": {
+        "php": ">=8.2",
+        "react/http": "^1.8",
+        "symfony/console": "^6.2",
+        "clue/reactphp-sqlite": "^1.5",
+        "alexmorbo/reactphp-router": "dev-master",
+        "alexmorbo/trassir-php": "dev-master"
+    },
+    "autoload": {
+        "psr-4": {
+            "AlexMorbo\\React\\Trassir\\": "src/"
+        }
+    },
+    "require-dev": {
+        "symfony/var-dumper": "^6.2"
+    }
+}
