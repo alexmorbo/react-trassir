@@ -139,7 +139,7 @@ class Server extends Command
 
         $router
             ->getHttpServer()
-            ->on('error', fn() => dd(func_get_args()));
+            ->on('error', fn() => var_dump(func_get_args()));
 
         $router->listen();
 

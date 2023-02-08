@@ -50,6 +50,7 @@ class TrassirHelper
     {
         $options = ConnectionOptions::fromServer(
             Server::fromArray([
+                'id' => $instanceData['id'],
                 'host' => $instanceData['ip'],
                 'httpPort' => $instanceData['http_port'],
                 'rtspPort' => $instanceData['rtsp_port'],
@@ -84,21 +85,6 @@ class TrassirHelper
                     }
 
                     return all($promises);
-                }
-            )
-            ->then(
-                function (array $instances) {
-                    /**
-                     * Update instance id in database
-                     */
-                    foreach ($instances as $instanceId) {
-                        $settings = $this->instances[$instanceId]->getTrassir()->getSettings();
-                        $this->dbUpdate(
-                            'instances',
-                            ['name' => $settings['name']],
-                            ['id' => $instanceId]
-                        );
-                    }
                 }
             );
     }

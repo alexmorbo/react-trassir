@@ -14,7 +14,7 @@ class Instance
     private string $login;
     private string $password;
 
-    public function __construct(array $instanceData, private Trassir $trassir)
+    public function __construct(array $instanceData, private readonly Trassir $trassir)
     {
         $this->id = $instanceData['id'];
         $this->name = $instanceData['name'];

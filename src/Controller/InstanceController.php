@@ -5,10 +5,10 @@ namespace AlexMorbo\React\Trassir\Controller;
 use AlexMorbo\React\Trassir\Dto\Instance;
 use AlexMorbo\React\Trassir\Traits\DBTrait;
 use AlexMorbo\React\Trassir\TrassirHelper;
+use AlexMorbo\Trassir\TrassirException;
 use Clue\React\SQLite\DatabaseInterface;
 use Fig\Http\Message\StatusCodeInterface;
 use HttpSoft\Response\JsonResponse;
-use React\EventLoop\Loop;
 use React\Http\Message\Response;
 use React\Http\Message\ServerRequest;
 use React\Promise\PromiseInterface;
@@ -46,10 +46,13 @@ class InstanceController extends AbstractController
                     $promises = [];
                     foreach ($result as $instanceData) {
                         $promises[] = $this->trassirHelper->getInstance($instanceData['id'])
-                            ->then(fn(Instance $instance) => $instance->getTrassir()->getChannels())
                             ->then(
-                                function ($channels) use ($instanceData) {
-                                    return array_merge($instanceData, $channels);
+                                function (Instance $instance) use ($instanceData) {
+                                    return array_merge(
+                                        $instanceData,
+                                        ['state' => $instance->getTrassir()->getState()],
+                                        $instance->getTrassir()->getChannels()
+                                    );
                                 }
                             );
                     }
@@ -71,10 +74,13 @@ class InstanceController extends AbstractController
                     }
 
                     return $this->trassirHelper->getInstance($instanceId)
-                        ->then(fn(Instance $instance) => $instance->getTrassir()->getChannels())
                         ->then(
-                            function ($channels) use ($result) {
-                                return array_merge($result[0], $channels);
+                            function (Instance $instance) use ($result) {
+                                return array_merge(
+                                    $result[0],
+                                    ['state' => $instance->getTrassir()->getState()],
+                                    $instance->getTrassir()->getChannels()
+                                );
                             }
                         )
                         ->then(fn($instanceData) => new JsonResponse($instanceData));
@@ -115,11 +121,32 @@ class InstanceController extends AbstractController
 
         return $instanceId
             ->then(
-                function ($id) {
-                    Loop::get()->addTimer(0, function () use ($id) {
-                        $this->trassirHelper->connectByInstanceId($id);
-                    });
-                    return new JsonResponse(['id' => $id]);
+                function ($instanceId) {
+                    return $this->trassirHelper
+                        ->connectByInstanceId($instanceId)
+                        ->then(
+                            function (Instance $instance) use ($instanceId) {
+                                return $instance->getTrassir()->getConnection()
+                                    ->then(
+                                        function() use ($instance, $instanceId) {
+                                            $settings = $instance->getTrassir()->getSettings();
+                                            $this->dbUpdate(
+                                                'instances',
+                                                ['name' => $settings['name']],
+                                                ['id' => $instanceId]
+                                            );
+
+                                            return new JsonResponse(['status' => 'success', 'id' => $instanceId]);
+                                        }
+                                    )
+                                    ->otherwise(
+                                        fn(TrassirException $e) => new JsonResponse([
+                                            'status' => 'error',
+                                            'error' => $e->getMessage()
+                                        ], StatusCodeInterface::STATUS_INTERNAL_SERVER_ERROR)
+                                    );
+                            }
+                        );
                 },
                 function ($error) {
                     return new JsonResponse(['error' => $error]);
@@ -158,7 +185,7 @@ class InstanceController extends AbstractController
         $instanceId = (int)$instanceId;
         return $this->trassirHelper->getInstance($instanceId)
             ->then(
-                function(Instance $instance) use ($channelId) {
+                function (Instance $instance) use ($channelId) {
                     foreach ($instance->getTrassir()->getChannels() as $type => $channels) {
                         foreach ($channels as $channel) {
                             if ($channel['guid'] === $channelId) {
@@ -195,14 +222,22 @@ class InstanceController extends AbstractController
 
         return $this->trassirHelper->getInstance($instanceId)
             ->then(
-                function(Instance $instance) use ($channelId, $streamType) {
+                function (Instance $instance) use ($channelId, $streamType) {
                     foreach ($instance->getTrassir()->getChannels() as $type => $channels) {
                         foreach ($channels as $channel) {
                             if ($channel['guid'] === $channelId) {
                                 if ($type === 'channels') {
-                                    return $instance->getTrassir()->getVideo($instance->getName(), $channelId, $streamType);
+                                    return $instance->getTrassir()->getVideo(
+                                        $instance->getName(),
+                                        $channelId,
+                                        $streamType
+                                    );
                                 } else {
-                                    return $instance->getTrassir()->getVideo($channel['server_guid'], $channelId, $streamType);
+                                    return $instance->getTrassir()->getVideo(
+                                        $channel['server_guid'],
+                                        $channelId,
+                                        $streamType
+                                    );
                                 }
                             }
                         }

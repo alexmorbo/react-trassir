@@ -58,12 +58,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/alexmorbo/trassir-php.git",
-                "reference": "2f05ef7619ac44c1e71e5ace893e22a465b6cec0"
+                "reference": "9f157d9fb7c86ba12dcea4b68481660774f32e63"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/alexmorbo/trassir-php/zipball/2f05ef7619ac44c1e71e5ace893e22a465b6cec0",
-                "reference": "2f05ef7619ac44c1e71e5ace893e22a465b6cec0",
+                "url": "https://api.github.com/repos/alexmorbo/trassir-php/zipball/9f157d9fb7c86ba12dcea4b68481660774f32e63",
+                "reference": "9f157d9fb7c86ba12dcea4b68481660774f32e63",
                 "shasum": ""
             },
             "require": {
@@ -94,7 +94,7 @@
                 "issues": "https://github.com/alexmorbo/trassir-php/issues",
                 "source": "https://github.com/alexmorbo/trassir-php/tree/master"
             },
-            "time": "2023-02-08T20:10:58+00:00"
+            "time": "2023-02-08T21:36:08+00:00"
         },
         {
             "name": "clue/http-proxy-react",
