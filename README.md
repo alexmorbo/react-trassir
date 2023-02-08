@@ -81,13 +81,17 @@ Example:
 ```
 
 - GET /instances/{id} - get instance by id
+
 Response like GET /instances, but with single instance
 
 - DELETE /instances/{id} - delete instance by id
 
 - GET /instances/{id}/channel/{channelGuid}/screenshot - get screenshot from channel
+
 channelGuid - guid of channel from GET /instances/{id}
 
 - GET /instances/{id}/channel/{channelGuid}/video/{container} - get stream from channel
+
 channelGuid - guid of channel from GET /instances/{id}
+
 container - container of stream, can be: hls, rtsp
