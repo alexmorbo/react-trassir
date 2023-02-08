@@ -2,6 +2,8 @@
 
 ![GitHub last commit](https://img.shields.io/github/last-commit/alexmorbo/react-trassir)
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/alexmorbo/react-trassir/docker-publish.yml)
+![GitHub tag checks state](https://img.shields.io/github/checks-status/alexmorbo/react-trassir/0.1.0)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/alexmorbo/react-trassir)
 
 This application allows you to control Trassir Server via API
 
@@ -13,7 +15,7 @@ Docker
 ```bash
 docker run -d --name trassir-api-client -p 8080:8080 \
     -v /path/to/data.db:/app/data/data.db \
-    ghcr.io/alexmorbo/react-trassir:master
+    ghcr.io/alexmorbo/react-trassir:latest
 ```
 
 ## Usage
