@@ -247,8 +247,16 @@ class InstanceController extends AbstractController
                 }
             )
             ->then(
-                function ($video) use ($response) {
-                    $response->getBody()->write($video);
+                function ($video) use ($request, $response) {
+                    $useRedirect = $request->getQueryParams()['redirect'] ?? false;
+                    if ($useRedirect) {
+                        $response = $response
+                            ->withAddedHeader('Location', $video)
+                            ->withStatus(StatusCodeInterface::STATUS_FOUND);
+                    } else {
+                        $response->getBody()->write($video);
+                    }
+
                     return $response;
                 },
                 function (TrassirException $e) {

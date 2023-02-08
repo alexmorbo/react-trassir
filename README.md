@@ -97,3 +97,44 @@ channelGuid - guid of channel from GET /instances/{id}
 channelGuid - guid of channel from GET /instances/{id}
 
 container - container of stream, can be: hls, rtsp
+
+Allowed query params:
+- redirect - if true, will redirect to stream url, otherwise will return stream url.
+For Home Assistant use redirect=true
+
+## Home Assistant
+You can use this application with Home Assistant.
+
+[<img src="https://my.home-assistant.io/badges/config_flow_start.svg">](https://my.home-assistant.io/redirect/config_flow_start?domain=generic)
+
+For example go to Configuration -> Integrations -> Add Integration -> Generic Camera
+
+Image url like this:
+```
+http://app.ip:8080/instances/1/channel/some_guid/screenshot
+```
+Stream url:
+```
+http://app.ip:8080/instances/1/channel/some_guid/video/hls?redirect=true
+```
+Click "Submit" and you will see your camera in Home Assistant
+
+## Frigate (v 0.12+)
+Frigate can use this application as camera source since 0.12 version (still in development)
+
+Example config:
+```yaml
+go2rtc:
+  streams:
+    camera_name: echo:curl http://app.ip:8080/instance/1/channel/some_guid/video/rtsp
+
+cameras:
+  camera_name:
+    ffmpeg:
+      inputs:
+        - path: rtsp://127.0.0.1:8554/camera_name
+          input_args: preset-rtsp-restream
+          roles:
+            - record
+            - rtmp
+```
