@@ -8,6 +8,7 @@ use AlexMorbo\Trassir\ConnectionOptions;
 use AlexMorbo\Trassir\Dto\Server;
 use AlexMorbo\Trassir\Trassir;
 use Clue\React\SQLite\DatabaseInterface;
+use Psr\Log\LoggerInterface;
 use React\Promise\PromiseInterface;
 
 use function React\Promise\all;
@@ -19,7 +20,7 @@ class TrassirHelper
 
     private array $instances = [];
 
-    public function __construct(DatabaseInterface $db)
+    public function __construct(DatabaseInterface $db, private LoggerInterface $logger)
     {
         $this->initDB($db);
     }
@@ -54,6 +55,8 @@ class TrassirHelper
                 'rtspPort' => $instanceData['rtsp_port'],
                 'login' => $instanceData['login'],
                 'password' => $instanceData['password'],
+                'proxy' => getenv('PROXY'),
+                'logger' => $this->logger,
             ])
         );
 

@@ -9,6 +9,9 @@ use Clue\React\SQLite\Factory;
 use DateTime;
 use HttpSoft\Response\JsonResponse;
 use HttpSoft\Response\TextResponse;
+use Monolog\Handler\StreamHandler;
+use Monolog\Level;
+use Monolog\Logger;
 use React\EventLoop\Loop;
 use React\EventLoop\LoopInterface;
 use React\Promise\PromiseInterface;
@@ -31,10 +34,15 @@ class Server extends Command
     private LoopInterface $loop;
     private TrassirHelper $trassirHelper;
     private DatabaseInterface $db;
+    private Logger $logger;
 
     public function __construct()
     {
         $this->dbPath = __DIR__ . '/../data/data.db';
+        $this->logger = new Logger('react-trassir');
+        $this->logger->pushHandler(
+            new StreamHandler('php://stdout', getenv('LOG_LEVEL') ?: Level::Debug)
+        );
 
         parent::__construct();
     }
@@ -55,11 +63,10 @@ class Server extends Command
             ->then(fn() => $this->migrate())
             ->then(
                 function () {
-                    $this->trassirHelper = new TrassirHelper($this->db);
+                    $this->trassirHelper = new TrassirHelper($this->db, $this->logger);
                     $this->trassirHelper->pull();
                 }
-            )
-        ;
+            );
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -93,7 +100,8 @@ class Server extends Command
 
     private function migrate(): PromiseInterface
     {
-        return $this->db->query('CREATE TABLE IF NOT EXISTS `instances` (
+        return $this->db->query(
+            'CREATE TABLE IF NOT EXISTS `instances` (
             `id` INTEGER PRIMARY KEY AUTOINCREMENT,
             `ip` TEXT NOT NULL,
             `name` TEXT NULL,
@@ -102,7 +110,8 @@ class Server extends Command
             `login` TEXT NOT NULL,
             `password` TEXT NOT NULL,
             `created_at` TEXT NOT NULL
-        )');
+        )'
+        );
     }
 
     private function initServer(string $ip, int $port): int
