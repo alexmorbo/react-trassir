@@ -7,6 +7,7 @@ use AlexMorbo\React\Trassir\Traits\DBTrait;
 use AlexMorbo\React\Trassir\TrassirHelper;
 use AlexMorbo\Trassir\TrassirException;
 use Clue\React\SQLite\DatabaseInterface;
+use Exception;
 use Fig\Http\Message\StatusCodeInterface;
 use HttpSoft\Response\JsonResponse;
 use React\Http\Message\Response;
@@ -140,7 +141,7 @@ class InstanceController extends AbstractController
                                         }
                                     )
                                     ->otherwise(
-                                        fn(TrassirException $e) => new JsonResponse([
+                                        fn(Exception $e) => new JsonResponse([
                                             'status' => 'error',
                                             'error' => $e->getMessage()
                                         ], StatusCodeInterface::STATUS_INTERNAL_SERVER_ERROR)
@@ -259,7 +260,7 @@ class InstanceController extends AbstractController
 
                     return $response;
                 },
-                function (TrassirException $e) {
+                function (Exception $e) {
                     return new JsonResponse(['error' => $e->getMessage()], 404);
                 }
             );
