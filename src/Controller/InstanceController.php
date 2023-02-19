@@ -71,7 +71,7 @@ class InstanceController extends AbstractController
             ->then(
                 function ($result) use ($instanceId) {
                     if (!$result) {
-                        return new JsonResponse(['error' => 'Instance not found'], 404);
+                        return new JsonResponse(['status' => 'error', 'error' => 'Instance not found'], 404);
                     }
 
                     return $this->trassirHelper->getInstance($instanceId)
@@ -97,7 +97,7 @@ class InstanceController extends AbstractController
         ) {
             $input = json_decode($request->getBody()->getContents(), true);
             if (json_last_error() !== JSON_ERROR_NONE) {
-                return resolve(new JsonResponse(['error' => 'Invalid JSON'], 400));
+                return resolve(new JsonResponse(['status' => 'error', 'error' => 'Invalid JSON'], 400));
             }
         }
 
@@ -108,7 +108,7 @@ class InstanceController extends AbstractController
             empty($input['login']) ||
             empty($input['password'])
         ) {
-            return resolve(new JsonResponse(['error' => 'Invalid data'], 400));
+            return resolve(new JsonResponse(['status' => 'error', 'error' => 'Invalid data'], 400));
         }
 
         $instanceId = $this->dbInsert('instances', [
@@ -150,7 +150,7 @@ class InstanceController extends AbstractController
                         );
                 },
                 function ($error) {
-                    return new JsonResponse(['error' => $error]);
+                    return new JsonResponse(['status' => 'error', 'error' => $error]);
                 }
             );
     }
@@ -165,14 +165,14 @@ class InstanceController extends AbstractController
                 function (int $deletedRows) {
                     if ($deletedRows === 0) {
                         return new JsonResponse(
-                            ['error' => 'Instance not found'], StatusCodeInterface::STATUS_NOT_FOUND
+                            ['status' => 'error', 'error' => 'Instance not found'], StatusCodeInterface::STATUS_NOT_FOUND
                         );
                     }
 
                     return new Response(StatusCodeInterface::STATUS_NO_CONTENT);
                 },
                 function ($error) {
-                    return new JsonResponse(['error' => $error]);
+                    return new JsonResponse(['status' => 'error', 'error' => $error]);
                 }
             );
     }
@@ -218,7 +218,7 @@ class InstanceController extends AbstractController
         $instanceId = (int)$instanceId;
 
         if (!in_array($streamType, ['hls', 'rtsp'])) {
-            return resolve(new JsonResponse(['error' => 'Invalid stream type'], 400));
+            return resolve(new JsonResponse(['status' => 'error', 'error' => 'Invalid stream type'], 400));
         }
 
         return $this->trassirHelper->getInstance($instanceId)
@@ -261,7 +261,7 @@ class InstanceController extends AbstractController
                     return $response;
                 },
                 function (Exception $e) {
-                    return new JsonResponse(['error' => $e->getMessage()], 404);
+                    return new JsonResponse(['status' => 'error', 'error' => $e->getMessage()], 404);
                 }
             );
     }

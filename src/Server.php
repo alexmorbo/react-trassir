@@ -131,7 +131,7 @@ class Server extends Command
 
         $router
             ->map404("/(.*)", function () {
-                return resolve(new JsonResponse(['error' => 'Route not found'], 404));
+                return resolve(new JsonResponse(['status' => 'error', 'error' => 'Route not found'], 404));
             })
             ->map500("/(.*)", function () {
                 return resolve(new TextResponse("An internal error has occurred", 500));
