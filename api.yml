@@ -8,7 +8,7 @@ info:
     email: alex@morbo.ru
   license:
     name: MIT
-  version: 0.1.3
+  version: 0.1.4
 tags:
   - name: Instance
     description: Everything about Trassir instances
