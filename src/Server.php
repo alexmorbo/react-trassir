@@ -3,6 +3,7 @@
 namespace AlexMorbo\React\Trassir;
 
 use AlexMorbo\React\Trassir\Controller\AbstractController;
+use AlexMorbo\React\Trassir\Controller\InfoController;
 use AlexMorbo\React\Trassir\Controller\InstanceController;
 use Clue\React\SQLite\DatabaseInterface;
 use Clue\React\SQLite\Factory;
@@ -91,6 +92,7 @@ class Server extends Command
     private function getControllers(): array
     {
         return [
+            new InfoController(),
             new InstanceController(
                 $this->db,
                 $this->trassirHelper

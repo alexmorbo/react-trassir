@@ -1,0 +1,305 @@
+openapi: 3.0.3
+info:
+  title: ReactPHP - Trassir
+  description: PHP [Library](https://github.com/alexmorbo/react-trassir) for work with Trassir instances build on top of ReactPHP
+  contact:
+    name: Alex Morbo
+    url: https://github.com/alexmorbo
+    email: alex@morbo.ru
+  license:
+    name: MIT
+  version: 0.1.3
+tags:
+  - name: Instance
+    description: Everything about Trassir instances
+  - name: Channel
+    description: Access to Trassir Channels
+paths:
+  /instances:
+    post:
+      tags:
+        - Instance
+      summary: Add a new trassir server
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrassirAuth'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrassirAuthSuccessResponse'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrassirErrorResponse'
+        '500':
+          description: Operation not successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrassirErrorResponse'
+    get:
+      tags:
+        - Instance
+      summary: Get list of added instances
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrassirInstance'
+
+  /instance/{instanceId}:
+    get:
+      tags:
+        - Instance
+      summary: Get Instance by ID
+      description: Returns a single instance
+      operationId: GetInstance
+      parameters:
+        - name: instanceId
+          in: path
+          description: ID of instance to return
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrassirInstance'
+        '404':
+          description: Instance not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrassirErrorResponse'
+    delete:
+      tags:
+        - Instance
+      summary: Delete instance by ID
+      operationId: DeleteInstance
+      parameters:
+        - name: instanceId
+          in: path
+          description: Instance id to delete
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Successful deletion
+        '404':
+          description: Instance not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrassirErrorResponse'
+
+  /instance/{instanceId}/channel/{channelId}/screenshot:
+    get:
+      tags:
+        - Channel
+      summary: Get channel screenshot
+      operationId: GetChannelScreenshot
+      parameters:
+        - name: instanceId
+          in: path
+          description: Instance id
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: channelId
+          in: path
+          description: Channel id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+
+  /instance/{instanceId}/channel/{channelId}/video/{container}:
+    get:
+      tags:
+        - Channel
+      summary: Get channel video stream
+      operationId: GetChannelVideoStream
+      parameters:
+        - name: instanceId
+          in: path
+          description: Instance id
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: channelId
+          in: path
+          description: Channel id
+          required: true
+          schema:
+            type: string
+        - name: container
+          in: path
+          description: Video container
+          required: true
+          schema:
+            type: string
+            enum: ["rtsp", "hls"]
+        - name: redirect
+          in: query
+          description: Need to be true for HomeAssistant
+          required: false
+          schema:
+            type: integer
+            enum: [1, 0]
+            default: 0
+      responses:
+        '200':
+          description: successful operation if redirect query sets to false
+          content:
+            plain/text:
+              schema:
+                type: string
+                format: binary
+                description: HTTP link with video stream
+        '302':
+          description: successful operation if redirect query sets to true
+          headers:
+            Location:
+              schema:
+                type: string
+                description: HTTP link with video stream
+
+components:
+  schemas:
+    TrassirAuth:
+      type: object
+      properties:
+        ip:
+          type: string
+        http_port:
+          type: integer
+        rtsp_port:
+          type: integer
+        login:
+          type: string
+        password:
+          type: string
+    TrassirAuthSuccessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        id:
+          type: integer
+    TrassirErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        error:
+          type: string
+    TrassirInstance:
+      type: object
+      properties:
+        id:
+          type: integer
+        ip:
+          type: string
+        name:
+          type: string
+        http_port:
+          type: integer
+        rtsp_port:
+          type: integer
+        login:
+          type: string
+        password:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        state:
+          type: integer
+        channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/Channel'
+        remote_channels:
+          type: array
+          items:
+            $ref: '#/components/schemas/Channel'
+        zombies:
+          type: array
+          items:
+            $ref: '#/components/schemas/Channel'
+        templates:
+          type: array
+          items:
+            $ref: '#/components/schemas/Channel'
+    Channel:
+      type: object
+      properties:
+        guid:
+          type: string
+        name:
+          type: string
+        rights:
+          type: string
+        codec:
+          type: string
+        have_mainstream:
+          oneOf:
+            - type: string
+            - type: integer
+        have_substream:
+          oneOf:
+            - type: string
+            - type: integer
+        have_hardware_archive:
+          oneOf:
+            - type: string
+            - type: integer
+        have_ptz:
+          oneOf:
+            - type: string
+            - type: integer
+        fish_eye:
+          oneOf:
+            - type: string
+            - type: integer
+        have_voice_comm:
+          oneOf:
+            - type: string
+            - type: integer
+        aspect_ratio:
+          type: string
+        flip:
+          type: string
+        rotate:
+          type: string
+        server_name:
+          type: string
+        server_guid:
+          type: string

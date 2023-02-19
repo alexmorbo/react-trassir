@@ -38,7 +38,7 @@ class InstanceController extends AbstractController
             ->get("/instance/(\d+)/channel/(.*)/video/(.*)", [$this, 'getChannelVideo']);
     }
 
-    public function getInstances()
+    public function getInstances(): PromiseInterface
     {
         return $this
             ->dbSearch('instances')
@@ -64,7 +64,7 @@ class InstanceController extends AbstractController
             );
     }
 
-    public function getInstance(ServerRequest $request, Response $response, string $instanceId)
+    public function getInstance(ServerRequest $request, Response $response, string $instanceId): PromiseInterface
     {
         $instanceId = (int)$instanceId;
         return $this->dbSearch('instances', ['id' => $instanceId])
@@ -182,7 +182,7 @@ class InstanceController extends AbstractController
         Response $response,
         string $instanceId,
         string $channelId
-    ) {
+    ): PromiseInterface {
         $instanceId = (int)$instanceId;
         return $this->trassirHelper->getInstance($instanceId)
             ->then(
@@ -214,7 +214,7 @@ class InstanceController extends AbstractController
         string $instanceId,
         string $channelId,
         string $streamType,
-    ) {
+    ): PromiseInterface {
         $instanceId = (int)$instanceId;
 
         if (!in_array($streamType, ['hls', 'rtsp'])) {
