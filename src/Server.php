@@ -23,6 +23,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Yaml\Yaml;
 use Throwable;
 
 use function React\Promise\resolve;
@@ -92,7 +93,7 @@ class Server extends Command
     private function getControllers(): array
     {
         return [
-            new InfoController(),
+            new InfoController(new Yaml()),
             new InstanceController(
                 $this->db,
                 $this->trassirHelper

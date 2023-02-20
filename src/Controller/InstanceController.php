@@ -30,12 +30,12 @@ class InstanceController extends AbstractController
     public function addRoutes(Router $router): void
     {
         $router
-            ->get("/instances", [$this, 'getInstances'])
-            ->post("/instances", [$this, 'addInstance'])
-            ->delete("/instance/(\d+)", [$this, 'deleteInstance'])
-            ->get("/instance/(\d+)", [$this, 'getInstance'])
-            ->get("/instance/(\d+)/channel/(.*)/screenshot", [$this, 'getChannelScreenshot'])
-            ->get("/instance/(\d+)/channel/(.*)/video/(.*)", [$this, 'getChannelVideo']);
+            ->get("/api/instances", [$this, 'getInstances'])
+            ->post("/api/instances", [$this, 'addInstance'])
+            ->delete("/api/instance/(\d+)", [$this, 'deleteInstance'])
+            ->get("/api/instance/(\d+)", [$this, 'getInstance'])
+            ->get("/api/instance/(\d+)/channel/(.*)/screenshot", [$this, 'getChannelScreenshot'])
+            ->get("/api/instance/(\d+)/channel/(.*)/video/(.*)", [$this, 'getChannelVideo']);
     }
 
     public function getInstances(): PromiseInterface

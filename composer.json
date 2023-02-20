@@ -6,7 +6,8 @@
         "symfony/console": "^6.2",
         "clue/reactphp-sqlite": "^1.5",
         "alexmorbo/reactphp-router": "dev-master",
-        "alexmorbo/trassir-php": "dev-master"
+        "alexmorbo/trassir-php": "dev-master",
+        "symfony/yaml": "^6.2"
     },
     "autoload": {
         "psr-4": {
