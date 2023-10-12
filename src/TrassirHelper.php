@@ -81,6 +81,7 @@ class TrassirHelper
             ->then(
                 function ($result) {
                     $promises = [];
+                    $this->instances = [];
                     foreach ($result as $instanceData) {
                         $this->instances[$instanceData['id']] = new Instance(
                             $instanceData, $this->getTrassirInstance($instanceData)

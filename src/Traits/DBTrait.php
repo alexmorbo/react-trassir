@@ -3,7 +3,6 @@
 namespace AlexMorbo\React\Trassir\Traits;
 
 use Clue\React\SQLite\DatabaseInterface;
-use Clue\React\SQLite\Io\LazyDatabase;
 use Clue\React\SQLite\Result;
 
 use React\Promise\PromiseInterface;
@@ -13,9 +12,9 @@ use function React\Promise\resolve;
 
 trait DBTrait
 {
-    protected DatabaseInterface|LazyDatabase $db;
+    protected DatabaseInterface $db;
 
-    protected function initDB(DatabaseInterface|LazyDatabase $db)
+    protected function initDB(DatabaseInterface $db)
     {
         $this->db = $db;
     }

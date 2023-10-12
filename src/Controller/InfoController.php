@@ -5,9 +5,10 @@ namespace AlexMorbo\React\Trassir\Controller;
 use Fig\Http\Message\StatusCodeInterface;
 use HttpSoft\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Log\LoggerInterface;
 use React\Http\Message\Response;
-use React\Router\Http\Router;
 use Symfony\Component\Yaml\Yaml;
+use Tnapf\Router\Router;
 
 class InfoController extends AbstractController
 {
@@ -20,10 +21,9 @@ class InfoController extends AbstractController
 
     public function addRoutes(Router $router): void
     {
-        $router
-            ->get("/api/version", [$this, 'version'])
-            ->get("/api/openapi.yml", [$this, 'yml'])
-            ->get("/api/openapi.json", [$this, 'json']);
+        $router->get("/api/version", fn() => $this->version());
+        $router->get("/api/openapi.yml", fn() => $this->yml());
+        $router->get("/api/openapi.json", fn() => $this->json());
     }
 
     public function version(): ResponseInterface

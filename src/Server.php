@@ -2,22 +2,23 @@
 
 namespace AlexMorbo\React\Trassir;
 
-use AlexMorbo\React\Trassir\Controller\AbstractController;
 use AlexMorbo\React\Trassir\Controller\InfoController;
 use AlexMorbo\React\Trassir\Controller\InstanceController;
 use Clue\React\SQLite\DatabaseInterface;
 use Clue\React\SQLite\Factory;
-use DateTime;
+use Exception;
 use HttpSoft\Response\JsonResponse;
-use HttpSoft\Response\TextResponse;
+use Monolog\Formatter\JsonFormatter;
 use Monolog\Handler\StreamHandler;
 use Monolog\Level;
 use Monolog\Logger;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use React\EventLoop\Loop;
 use React\EventLoop\LoopInterface;
+use React\Http\HttpServer;
 use React\Promise\PromiseInterface;
 use React\Socket\SocketServer;
-use React\Router\Http\Router;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -25,8 +26,9 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Yaml\Yaml;
 use Throwable;
-
-use function React\Promise\resolve;
+use Tnapf\Router\Exceptions\HttpNotFound;
+use Tnapf\Router\Router;
+use Tnapf\Router\Routing\RouteRunner;
 
 class Server extends Command
 {
@@ -42,9 +44,9 @@ class Server extends Command
     {
         $this->dbPath = __DIR__ . '/../data/data.db';
         $this->logger = new Logger('react-trassir');
-        $this->logger->pushHandler(
-            new StreamHandler('php://stdout', getenv('LOG_LEVEL') ?: Level::Debug)
-        );
+        $handler = new StreamHandler('php://stdout', getenv('LOG_LEVEL') ?: Level::Debug);
+        $handler->setFormatter(new JsonFormatter());
+        $this->logger->pushHandler($handler);
 
         parent::__construct();
     }
@@ -95,6 +97,7 @@ class Server extends Command
         return [
             new InfoController(new Yaml()),
             new InstanceController(
+                $this->logger,
                 $this->db,
                 $this->trassirHelper
             ),
@@ -119,65 +122,67 @@ class Server extends Command
 
     private function initServer(string $ip, int $port): int
     {
-        try {
-            $socket = new SocketServer(sprintf("%s:%s", $ip, $port), [], $this->loop);
-        } catch (Throwable $e) {
-            echo $e->getMessage() . PHP_EOL;
+        $socket = new SocketServer(sprintf("%s:%s", $ip, $port), [], $this->loop);
+        $router = $this->getRouter();
+
+        $http = new HttpServer(
+            static function (ServerRequestInterface $request) use ($router) {
+                return $router->run($request);
+            }
+        );
+        $http->on('error', function (Exception $e) {
+            $this->logger->error($e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
 
             $this->loop->stop();
-            return Command::FAILURE;
-        }
+        });
+        $http->listen($socket);
 
-        $router = new Router($socket);
-        $this->addRoutes($router);
-        $this->addMiddlewares($router);
-
-        $router
-            ->map404("/(.*)", function () {
-                return resolve(new JsonResponse(['status' => 'error', 'error' => 'Route not found'], 404));
-            })
-            ->map500("/(.*)", function () {
-                return resolve(new TextResponse("An internal error has occurred", 500));
-            });
-
-        $router
-            ->getHttpServer()
-            ->on('error', fn() => var_dump(func_get_args()));
-
-        $router->listen();
-
-        echo 'Listening on ' . str_replace('tcp:', 'http:', $socket->getAddress()) . PHP_EOL;
+        $this->logger->info(
+            'Listening on ' . str_replace('tcp:', 'http:', $socket->getAddress())
+        );
 
         $this->loop->addPeriodicTimer(300, function () {
-            echo sprintf(
-                '[%s] Current usage %f mb, Max: %f mb' . PHP_EOL,
-                (new DateTime())->format('Y-m-d H:i:s'),
-                round(memory_get_usage() / 1024 / 1024, 2) . ' mb',
-                round(memory_get_peak_usage() / 1024 / 1024, 2) . ' mb'
+            $this->logger->info(
+                sprintf(
+                    'Current memory usage %f mb, max: %f mb',
+                    round(memory_get_usage() / 1024 / 1024, 2) . ' mb',
+                    round(memory_get_peak_usage() / 1024 / 1024, 2) . ' mb'
+                ),
+                [
+                    'memory_current' => memory_get_usage(),
+                    'memory_max' => memory_get_peak_usage(),
+                ]
             );
         });
 
         return Command::SUCCESS;
     }
 
+    private function getRouter(): Router
+    {
+        $router = new Router();
+        $this->addRoutes($router);
+
+        $router->catch(
+            HttpNotFound::class,
+            fn() => new JsonResponse(['status' => 'error', 'error' => 'Route not found'])
+        );
+        $router->catch(
+            Throwable::class,
+            fn(ServerRequestInterface $request, ResponseInterface $response, RouteRunner $route) => new JsonResponse(
+                ['status' => 'error', 'error' => 'Internal Error', 'message' => $route->exception->getMessage()]
+            )
+        );
+
+        return $router;
+    }
+
     protected function addRoutes(Router $router): void
     {
         foreach ($this->getControllers() as $controller) {
             $controller->addRoutes($router);
-        }
-    }
-
-    protected function addMiddlewares(Router $router): void
-    {
-        foreach ($this->getControllers() as $controller) {
-            if ($controller->hasMiddlewares()) {
-                foreach ($controller->getMiddlewares(AbstractController::BEFORE_MIDDLEWARE) as $middleware) {
-                    $router->beforeMiddleware($middleware[0], $middleware[1]);
-                }
-                foreach ($controller->getMiddlewares(AbstractController::AFTER_MIDDLEWARE) as $middleware) {
-                    $router->afterMiddleware($middleware[0], $middleware[1]);
-                }
-            }
         }
     }
 }
