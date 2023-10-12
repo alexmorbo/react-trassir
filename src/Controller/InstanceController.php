@@ -3,7 +3,6 @@
 namespace AlexMorbo\React\Trassir\Controller;
 
 use AlexMorbo\React\Trassir\Dto\Instance;
-use AlexMorbo\React\Trassir\Log;
 use AlexMorbo\React\Trassir\Traits\DBTrait;
 use AlexMorbo\React\Trassir\TrassirHelper;
 use AlexMorbo\Trassir\TrassirException;
@@ -19,7 +18,6 @@ use Tnapf\Router\Handlers\ClosureRequestHandler;
 use Tnapf\Router\Router;
 use Tnapf\Router\Routing\RouteRunner;
 
-use function React\Async\await;
 use function React\Promise\all;
 use function React\Promise\resolve;
 
@@ -28,7 +26,7 @@ class InstanceController extends AbstractController
     use DBTrait;
 
     public function __construct(
-        private LoggerInterface $logger,
+        protected ?LoggerInterface $logger,
         DatabaseInterface $db,
         protected TrassirHelper $trassirHelper
     ) {
@@ -132,7 +130,7 @@ class InstanceController extends AbstractController
                 }
             );
 
-        return await($promise);
+        return $this->awaitResponse($promise);
     }
 
     public function getInstance(
@@ -161,7 +159,7 @@ class InstanceController extends AbstractController
                 }
             );
 
-        return await($promise);
+        return $this->awaitResponse($promise);
     }
 
     public function addInstance(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
@@ -237,7 +235,7 @@ class InstanceController extends AbstractController
                 }
             );
 
-        return await($promise);
+        return $this->awaitResponse($promise);
     }
 
     public function deleteInstance(
@@ -271,7 +269,7 @@ class InstanceController extends AbstractController
                 }
             );
 
-        return await($promise);
+        return $this->awaitResponse($promise);
     }
 
     public function getChannelScreenshot(
@@ -304,7 +302,7 @@ class InstanceController extends AbstractController
                 }
             );
 
-        return await($promise);
+        return $this->awaitResponse($promise);
     }
 
     public function getChannelVideo(
@@ -364,7 +362,7 @@ class InstanceController extends AbstractController
                 }
             );
 
-        return await($promise);
+        return $this->awaitResponse($promise);
     }
 
 
