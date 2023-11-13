@@ -127,12 +127,22 @@ class Server extends Command
 
         $http = new HttpServer(
             function (ServerRequestInterface $request) use ($router) {
+                $id = uniqid();
                 $this->logger->debug('New request', [
+                    'id' => $id,
                     'uri' => $request->getUri(),
                     'method' => $request->getMethod(),
                     'remote_addr' => $request->getServerParams()['REMOTE_ADDR']
                 ]);
-                return $router->run($request);
+                $response = $router->run($request);
+                $body = $response->getBody();
+                $this->logger->debug('Response', [
+                    'id' => $id,
+                    'headers' => $response->getHeaders(),
+                    'body' => strlen($body) > 200 ? '..' : $body,
+                ]);
+
+                return $response;
             }
         );
         $http->on('error', function (Exception $e) {
