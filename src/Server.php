@@ -126,7 +126,12 @@ class Server extends Command
         $router = $this->getRouter();
 
         $http = new HttpServer(
-            static function (ServerRequestInterface $request) use ($router) {
+            function (ServerRequestInterface $request) use ($router) {
+                $this->logger->debug('New request', [
+                    'uri' => $request->getUri(),
+                    'method' => $request->getMethod(),
+                    'remote_addr' => $request->getServerParams()['REMOTE_ADDR']
+                ]);
                 return $router->run($request);
             }
         );
