@@ -6,6 +6,7 @@ use AlexMorbo\React\Trassir\Controller\AbstractController;
 use AlexMorbo\React\Trassir\Controller\InfoController;
 use AlexMorbo\React\Trassir\Controller\InstanceController;
 use AlexMorbo\React\Trassir\Router\Router;
+use AlexMorbo\Trassir\TrassirException;
 use Clue\React\SQLite\DatabaseInterface;
 use Clue\React\SQLite\Factory;
 use Exception;
@@ -147,7 +148,7 @@ class Server extends Command
 
                         return $response;
                     })
-                    ->catch(function (NotFoundHttpException $e) {
+                    ->catch(function (NotFoundHttpException|TrassirException $e) {
                         return Response::json([
                             'status' => 'error',
                             'error' => $e->getMessage(),
