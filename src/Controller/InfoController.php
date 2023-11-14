@@ -2,13 +2,14 @@
 
 namespace AlexMorbo\React\Trassir\Controller;
 
+use AlexMorbo\React\Trassir\Router\Router;
 use Fig\Http\Message\StatusCodeInterface;
-use HttpSoft\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
-use Psr\Log\LoggerInterface;
 use React\Http\Message\Response;
+use React\Promise\PromiseInterface;
 use Symfony\Component\Yaml\Yaml;
-use Tnapf\Router\Router;
+
+use function React\Promise\resolve;
 
 class InfoController extends AbstractController
 {
@@ -26,30 +27,28 @@ class InfoController extends AbstractController
         $router->get("/api/openapi.json", fn() => $this->json());
     }
 
-    public function version(): ResponseInterface
+    public function version(): PromiseInterface
     {
-        return new Response(
-            StatusCodeInterface::STATUS_OK,
-            [
-                'Content-Type' => 'text/plain'
-            ],
-            $this->openapi['info']['version']
+        return resolve(
+            Response::plaintext($this->openapi['info']['version'])
         );
     }
 
-    public function yml(): ResponseInterface
+    public function yml(): PromiseInterface
     {
-        return new Response(
-            StatusCodeInterface::STATUS_OK,
-            [
-                'Content-Type' => 'application/x-yaml'
-            ],
-            $this->yaml->dump($this->openapi, 10, 2)
+        return resolve(
+            new Response(
+                StatusCodeInterface::STATUS_OK,
+                [
+                    'Content-Type' => 'application/x-yaml'
+                ],
+                $this->yaml->dump($this->openapi, 10, 2)
+            )
         );
     }
 
-    public function json(): ResponseInterface
+    public function json(): PromiseInterface
     {
-        return new JsonResponse($this->openapi);
+        return resolve(Response::json($this->openapi));
     }
 }

@@ -2,12 +2,13 @@
 
 namespace AlexMorbo\React\Trassir;
 
+use AlexMorbo\React\Trassir\Controller\AbstractController;
 use AlexMorbo\React\Trassir\Controller\InfoController;
 use AlexMorbo\React\Trassir\Controller\InstanceController;
+use AlexMorbo\React\Trassir\Router\Router;
 use Clue\React\SQLite\DatabaseInterface;
 use Clue\React\SQLite\Factory;
 use Exception;
-use HttpSoft\Response\JsonResponse;
 use Monolog\Formatter\JsonFormatter;
 use Monolog\Handler\StreamHandler;
 use Monolog\Level;
@@ -17,6 +18,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use React\EventLoop\Loop;
 use React\EventLoop\LoopInterface;
 use React\Http\HttpServer;
+use React\Http\Message\Response;
 use React\Promise\PromiseInterface;
 use React\Socket\SocketServer;
 use Symfony\Component\Console\Command\Command;
@@ -24,11 +26,8 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Yaml\Yaml;
-use Throwable;
-use Tnapf\Router\Exceptions\HttpNotFound;
-use Tnapf\Router\Router;
-use Tnapf\Router\Routing\RouteRunner;
 
 class Server extends Command
 {
@@ -134,15 +133,26 @@ class Server extends Command
                     'method' => $request->getMethod(),
                     'remote_addr' => $request->getServerParams()['REMOTE_ADDR']
                 ]);
-                $response = $router->run($request);
-                $body = $response->getBody();
-                $this->logger->debug('Response', [
-                    'id' => $id,
-                    'headers' => $response->getHeaders(),
-                    'body' => strlen($body) > 200 ? '..' : $body,
-                ]);
 
-                return $response;
+                return $router
+                    ->handle($request)
+                    ->then(function (ResponseInterface $response) use ($id) {
+                        $body = $response->getBody()->getContents();
+
+                        $this->logger->debug('Response', [
+                            'id' => $id,
+                            'headers' => $response->getHeaders(),
+                            'body' => strlen($body) > 200 ? '..' : $body,
+                        ]);
+
+                        return $response;
+                    })
+                    ->catch(function (NotFoundHttpException $e) {
+                        return Response::json([
+                            'status' => 'error',
+                            'error' => $e->getMessage(),
+                        ]);
+                    });
             }
         );
         $http->on('error', function (Exception $e) {
@@ -180,22 +190,12 @@ class Server extends Command
         $router = new Router();
         $this->addRoutes($router);
 
-        $router->catch(
-            HttpNotFound::class,
-            fn() => new JsonResponse(['status' => 'error', 'error' => 'Route not found'])
-        );
-        $router->catch(
-            Throwable::class,
-            fn(ServerRequestInterface $request, ResponseInterface $response, RouteRunner $route) => new JsonResponse(
-                ['status' => 'error', 'error' => 'Internal Error', 'message' => $route->exception->getMessage()]
-            )
-        );
-
         return $router;
     }
 
     protected function addRoutes(Router $router): void
     {
+        /** @var AbstractController $controller */
         foreach ($this->getControllers() as $controller) {
             $controller->addRoutes($router);
         }

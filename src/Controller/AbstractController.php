@@ -2,12 +2,12 @@
 
 namespace AlexMorbo\React\Trassir\Controller;
 
+use AlexMorbo\React\Trassir\Router\Router;
 use HttpSoft\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
 use React\Promise\PromiseInterface;
 use Throwable;
-use Tnapf\Router\Router;
 
 use function React\Async\await;
 

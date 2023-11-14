@@ -3,20 +3,20 @@
 namespace AlexMorbo\React\Trassir\Controller;
 
 use AlexMorbo\React\Trassir\Dto\Instance;
+use AlexMorbo\React\Trassir\Router\Router;
 use AlexMorbo\React\Trassir\Traits\DBTrait;
 use AlexMorbo\React\Trassir\TrassirHelper;
 use AlexMorbo\Trassir\TrassirException;
 use Clue\React\SQLite\DatabaseInterface;
 use Exception;
 use Fig\Http\Message\StatusCodeInterface;
-use HttpSoft\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
 use React\Http\Message\Response;
-use Tnapf\Router\Handlers\ClosureRequestHandler;
-use Tnapf\Router\Router;
-use Tnapf\Router\Routing\RouteRunner;
+use React\Promise\PromiseInterface;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 use function React\Promise\all;
 use function React\Promise\resolve;
@@ -35,79 +35,40 @@ class InstanceController extends AbstractController
 
     public function addRoutes(Router $router): void
     {
-        $router->get("/api/instances", ClosureRequestHandler::new(fn() => $this->getInstances()));
+        $router->get("/api/instances", fn() => $this->getInstances());
         $router->post(
             "/api/instances",
-            ClosureRequestHandler::new(
-                fn(ServerRequestInterface $request, ResponseInterface $response) => $this->addInstance(
-                    $request,
-                    $response
-                )
+            fn(ServerRequestInterface $request) => $this->addInstance($request)
+        );
+        $router->delete(
+            "/api/instance/{instanceId}",
+            fn(ServerRequestInterface $request, $instanceId) => $this->deleteInstance($instanceId)
+        );
+        $router->get(
+            "/api/instance/{instanceId}",
+            fn(ServerRequestInterface $request, $instanceId) => $this->getInstance($instanceId)
+        );
+        $router->get(
+            "/api/instance/{instanceId}/channel/{channelId}/screenshot",
+            fn(ServerRequestInterface $request, $instanceId, $channelId) => $this->getChannelScreenshot(
+                $instanceId,
+                $channelId
             )
         );
-        $router
-            ->delete(
-                "/api/instance/{instanceId}",
-                ClosureRequestHandler::new(
-                    fn(
-                        ServerRequestInterface $request,
-                        ResponseInterface $response,
-                        RouteRunner $runner
-                    ) => $this->deleteInstance($runner->getParameter('instanceId'))
-                )
+        $router->get(
+            "/api/instance/{instanceId}/channel/{channelId}/video/{streamType}",
+            fn(ServerRequestInterface $request, $instanceId, $channelId, $streamType) => $this->getChannelVideo(
+                $request,
+                $instanceId,
+                $channelId,
+                $streamType
             )
-            ->setParameter('instanceId', '\d+');
-        $router
-            ->get(
-                "/api/instance/{instanceId}",
-                ClosureRequestHandler::new(
-                    fn(
-                        ServerRequestInterface $request,
-                        ResponseInterface $response,
-                        RouteRunner $runner
-                    ) => $this->getInstance($runner->getParameter('instanceId'))
-                )
-            )
-            ->setParameter('instanceId', '\d+');
-        $router
-            ->get(
-                "/api/instance/{instanceId}/channel/{channelId}/screenshot",
-                ClosureRequestHandler::new(
-                    fn(
-                        ServerRequestInterface $request,
-                        ResponseInterface $response,
-                        RouteRunner $runner
-                    ) => $this->getChannelScreenshot(
-                        $response,
-                        $runner->getParameter('instanceId'),
-                        $runner->getParameter('channelId'),
-                    )
-                )
-            )
-            ->setParameter('instanceId', '\d+');
-        $router
-            ->get(
-                "/api/instance/{instanceId}/channel/{channelId}/video/{streamType}",
-                ClosureRequestHandler::new(
-                    fn(
-                        ServerRequestInterface $request,
-                        ResponseInterface $response,
-                        RouteRunner $runner
-                    ) => $this->getChannelVideo(
-                        $request,
-                        $response,
-                        $runner->getParameter('instanceId'),
-                        $runner->getParameter('channelId'),
-                        $runner->getParameter('streamType'),
-                    )
-                )
-            )
-            ->setParameter('instanceId', '\d+');
+        );
     }
 
-    public function getInstances(): ResponseInterface
+    public function getInstances(): PromiseInterface
     {
-        $promise = $this
+        return $this
             ->dbSearch('instances')
             ->then(
                 function ($result) {
@@ -126,23 +87,20 @@ class InstanceController extends AbstractController
                     }
 
                     return all($promises)
-                        ->then(fn($instancesData) => new JsonResponse($instancesData));
+                        ->then(fn($instancesData) => Response::json($instancesData));
                 }
             );
-
-        return $this->awaitResponse($promise);
     }
 
-    public function getInstance(
-        string $instanceId
-    ): ResponseInterface {
+    public function getInstance(string $instanceId): PromiseInterface
+    {
         $instanceId = (int)$instanceId;
 
-        $promise = $this->dbSearch('instances', ['id' => $instanceId])
+        return $this->dbSearch('instances', ['id' => $instanceId])
             ->then(
                 function ($result) use ($instanceId) {
                     if (!$result) {
-                        return new JsonResponse(['status' => 'error', 'error' => 'Instance not found'], 404);
+                        throw new NotFoundHttpException('Instance Not Found');
                     }
 
                     return $this->trassirHelper->getInstance($instanceId)
@@ -155,14 +113,12 @@ class InstanceController extends AbstractController
                                 );
                             }
                         )
-                        ->then(fn($instanceData) => new JsonResponse($instanceData));
+                        ->then(fn($instanceData) => Response::json($instanceData));
                 }
             );
-
-        return $this->awaitResponse($promise);
     }
 
-    public function addInstance(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
+    public function addInstance(ServerRequestInterface $request): PromiseInterface
     {
         if (
             $request->hasHeader('Content-Type') &&
@@ -170,7 +126,7 @@ class InstanceController extends AbstractController
         ) {
             $input = json_decode($request->getBody()->getContents(), true);
             if (json_last_error() !== JSON_ERROR_NONE) {
-                return new JsonResponse(['status' => 'error', 'error' => 'Invalid JSON'], 400);
+                throw new BadRequestHttpException('Invalid JSON');
             }
         }
 
@@ -181,7 +137,7 @@ class InstanceController extends AbstractController
             empty($input['login']) ||
             empty($input['password'])
         ) {
-            return new JsonResponse(['status' => 'error', 'error' => 'Invalid data'], 400);
+            throw new BadRequestHttpException('Invalid JSON Data');
         }
 
         $instanceId = $this->dbInsert('instances', [
@@ -193,7 +149,7 @@ class InstanceController extends AbstractController
             'created_at' => date('Y-m-d H:i:s'),
         ]);
 
-        $promise = $instanceId
+        return $instanceId
             ->then(
                 function ($instanceId) {
                     return $this->trassirHelper
@@ -215,35 +171,23 @@ class InstanceController extends AbstractController
                                             return $this->trassirHelper
                                                 ->pull()
                                                 ->then(
-                                                    fn() => new JsonResponse(
+                                                    fn() => Response::json(
                                                         ['status' => 'success', 'id' => $instanceId]
                                                     )
                                                 );
                                         }
-                                    )
-                                    ->catch(
-                                        fn(Exception $e) => new JsonResponse([
-                                            'status' => 'error',
-                                            'error' => $e->getMessage()
-                                        ], StatusCodeInterface::STATUS_INTERNAL_SERVER_ERROR)
                                     );
                             }
                         );
                 },
-                function ($error) {
-                    return new JsonResponse(['status' => 'error', 'error' => $error]);
-                }
             );
-
-        return $this->awaitResponse($promise);
     }
 
-    public function deleteInstance(
-        $instanceId
-    ): ResponseInterface {
+    public function deleteInstance($instanceId): PromiseInterface
+    {
         $instanceId = (int)$instanceId;
 
-        $promise = $this
+        return $this
             ->dbDelete('instances', [
                 'id' => $instanceId,
             ])
@@ -252,34 +196,25 @@ class InstanceController extends AbstractController
                     if ($deletedRows === 0) {
                         $this->logger->warning('Instance not deleted', ['instanceId' => $instanceId]);
 
-                        return new JsonResponse(
-                            ['status' => 'error', 'error' => 'Instance not found'],
-                            StatusCodeInterface::STATUS_NOT_FOUND
-                        );
+                        throw new NotFoundHttpException('Instance Not Found');
                     }
 
                     $this->logger->info('Instance deleted', ['instanceId' => $instanceId]);
 
                     return $this->trassirHelper
                         ->pull()
-                        ->then(fn() => new Response(StatusCodeInterface::STATUS_NO_CONTENT));
-                },
-                function ($error) {
-                    return new JsonResponse(['status' => 'error', 'error' => $error]);
+                        ->then(fn() => resolve(
+                            new Response(StatusCodeInterface::STATUS_NO_CONTENT)
+                        ));
                 }
             );
-
-        return $this->awaitResponse($promise);
     }
 
-    public function getChannelScreenshot(
-        ResponseInterface $response,
-        string $instanceId,
-        string $channelId
-    ): ResponseInterface {
+    public function getChannelScreenshot(string $instanceId, string $channelId): PromiseInterface
+    {
         $instanceId = (int)$instanceId;
 
-        $promise = $this->trassirHelper->getInstance($instanceId)
+        return $this->trassirHelper->getInstance($instanceId)
             ->then(
                 function (Instance $instance) use ($channelId) {
                     foreach ($instance->getTrassir()->getChannels() as $type => $channels) {
@@ -293,32 +228,30 @@ class InstanceController extends AbstractController
                             }
                         }
                     }
+
+                    throw new NotFoundHttpException('Channel Not Found');
                 }
             )
             ->then(
-                function ($screenshot) use ($response) {
-                    $response->getBody()->write($screenshot);
-                    return $response;
+                function ($screenshot) {
+                    return Response::plaintext($screenshot);
                 }
             );
-
-        return $this->awaitResponse($promise);
     }
 
     public function getChannelVideo(
         ServerRequestInterface $request,
-        ResponseInterface $response,
         string $instanceId,
         string $channelId,
         string $streamType,
-    ): ResponseInterface {
+    ): PromiseInterface {
         $instanceId = (int)$instanceId;
 
         if (!in_array($streamType, ['hls', 'rtsp'])) {
-            return resolve(new JsonResponse(['status' => 'error', 'error' => 'Invalid stream type'], 400));
+            throw new BadRequestHttpException('Invalid stream type');
         }
 
-        $promise = $this->trassirHelper->getInstance($instanceId)
+        return $this->trassirHelper->getInstance($instanceId)
             ->then(
                 function (Instance $instance) use ($channelId, $streamType) {
                     foreach ($instance->getTrassir()->getChannels() as $type => $channels) {
@@ -341,28 +274,23 @@ class InstanceController extends AbstractController
                         }
                     }
 
-                    throw new TrassirException('Channel not found');
+                    throw new NotFoundHttpException('Channel Not Found');
                 }
             )
             ->then(
-                function ($video) use ($request, $response) {
+                function ($video) use ($request) {
                     $useRedirect = $request->getQueryParams()['redirect'] ?? false;
                     if ($useRedirect) {
-                        $response = $response
+                        $response = Response::plaintext('')
                             ->withAddedHeader('Location', $video)
                             ->withStatus(StatusCodeInterface::STATUS_FOUND);
                     } else {
-                        $response->getBody()->write($video);
+                        $response = Response::plaintext($video);
                     }
 
                     return $response;
-                },
-                function (Exception $e) {
-                    return new JsonResponse(['status' => 'error', 'error' => $e->getMessage()], 404);
                 }
             );
-
-        return $this->awaitResponse($promise);
     }
 
 

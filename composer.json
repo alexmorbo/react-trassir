@@ -7,8 +7,8 @@
         "clue/reactphp-sqlite": "^1.5",
         "alexmorbo/trassir-php": "dev-master",
         "symfony/yaml": "^6.2",
-        "tnapf/router": "^6.0",
-        "react/async": "^4.1"
+        "react/async": "^4.1",
+        "symfony/http-kernel": "^6.3"
     },
     "autoload": {
         "psr-4": {
