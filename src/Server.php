@@ -148,7 +148,20 @@ class Server extends Command
 
                         return $response;
                     })
-                    ->catch(function (NotFoundHttpException|TrassirException $e) {
+                    ->catch(function (NotFoundHttpException $e) {
+                        return Response::json([
+                            'status' => 'error',
+                            'error' => $e->getMessage(),
+                        ]);
+                    })
+                    ->catch(function (TrassirException|Exception $e) {
+                        $this->logger->error('Caught an exception', [
+                            'exception' => get_class($e),
+                            'message' => $e->getMessage(),
+                            'code' => $e->getCode(),
+                            'trace' => $e->getTraceAsString(),
+                        ]);
+
                         return Response::json([
                             'status' => 'error',
                             'error' => $e->getMessage(),
