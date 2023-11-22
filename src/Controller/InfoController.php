@@ -4,7 +4,6 @@ namespace AlexMorbo\React\Trassir\Controller;
 
 use AlexMorbo\React\Trassir\Router\Router;
 use Fig\Http\Message\StatusCodeInterface;
-use Psr\Http\Message\ResponseInterface;
 use React\Http\Message\Response;
 use React\Promise\PromiseInterface;
 use Symfony\Component\Yaml\Yaml;

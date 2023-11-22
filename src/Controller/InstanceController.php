@@ -53,12 +53,13 @@ class InstanceController extends AbstractController
             )
         );
         $router->get(
-            "/api/instance/{instanceId}/channel/{channelId}/video/{streamType}",
-            fn(ServerRequestInterface $request, $instanceId, $channelId, $streamType) => $this->getChannelVideo(
+            "/api/instance/{instanceId}/channel/{channelId}/video/{container}/{stream}",
+            fn(ServerRequestInterface $request, $instanceId, $channelId, $container, $stream) => $this->getChannelVideo(
                 $request,
                 $instanceId,
                 $channelId,
-                $streamType
+                $container,
+                $stream
             )
         );
     }
@@ -240,17 +241,22 @@ class InstanceController extends AbstractController
         ServerRequestInterface $request,
         string $instanceId,
         string $channelId,
-        string $streamType,
+        string $container,
+        string $stream,
     ): PromiseInterface {
         $instanceId = (int)$instanceId;
 
-        if (!in_array($streamType, ['hls', 'rtsp'])) {
+        if (!in_array($container, ['hls', 'rtsp'])) {
+            throw new BadRequestHttpException('Invalid container type');
+        }
+
+        if (!in_array($stream, ['main', 'sub'])) {
             throw new BadRequestHttpException('Invalid stream type');
         }
 
         return $this->trassirHelper->getInstance($instanceId)
             ->then(
-                function (Instance $instance) use ($channelId, $streamType) {
+                function (Instance $instance) use ($channelId, $container, $stream) {
                     foreach ($instance->getTrassir()->getChannels() as $type => $channels) {
                         foreach ($channels as $channel) {
                             if ($channel['guid'] === $channelId) {
@@ -258,13 +264,15 @@ class InstanceController extends AbstractController
                                     return $instance->getTrassir()->getVideo(
                                         $instance->getName(),
                                         $channelId,
-                                        $streamType
+                                        $container,
+                                        $stream
                                     );
                                 } else {
                                     return $instance->getTrassir()->getVideo(
                                         $channel['server_guid'],
                                         $channelId,
-                                        $streamType
+                                        $container,
+                                        $stream
                                     );
                                 }
                             }
