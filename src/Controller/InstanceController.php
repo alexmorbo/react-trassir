@@ -6,7 +6,9 @@ use AlexMorbo\React\Trassir\Dto\Instance;
 use AlexMorbo\React\Trassir\Router\Router;
 use AlexMorbo\React\Trassir\Traits\DBTrait;
 use AlexMorbo\React\Trassir\TrassirHelper;
+use Carbon\Carbon;
 use Clue\React\SQLite\DatabaseInterface;
+use DateTimeZone;
 use Fig\Http\Message\StatusCodeInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
@@ -60,6 +62,15 @@ class InstanceController extends AbstractController
                 $channelId,
                 $container,
                 $stream
+            )
+        );
+        $router->get(
+            "/api/instance/{instanceId}/channel/{channelId}/archive/{start}/{end}",
+            fn(ServerRequestInterface $request, $instanceId, $channelId, $start, $end) => $this->getChannelArchive(
+                $instanceId,
+                $channelId,
+                $start,
+                $end,
             )
         );
     }
@@ -298,5 +309,53 @@ class InstanceController extends AbstractController
             );
     }
 
+    public function getChannelArchive(string $instanceId, string $channelId, string $start, string $end): PromiseInterface
+    {
+        return $this->trassirHelper->getInstance($instanceId)
+            ->then(
+                function (Instance $instance) use ($channelId) {
+                    foreach ($instance->getTrassir()->getChannels() as $type => $channels) {
+                        foreach ($channels as $channel) {
+                            if ($channel['guid'] === $channelId) {
+                                if ($type === 'channels') {
+                                    return [$instance, $channel];
+                                } else {
+                                    return [$instance, $channel];
+                                }
+                            }
+                        }
+                    }
+
+                    throw new NotFoundHttpException('Channel Not Found');
+                }
+            )
+            ->then(
+                function (array $data) use ($channelId, $start, $end) {
+                    [$instance, $channelData] = $data;
+                    $timezone = new DateTimeZone(getenv('TIMEZONE') ?: date_default_timezone_get());
+                    $now = Carbon::now($timezone);
+                    $from = Carbon::parse(urldecode($start))->addSeconds($now->offset);
+                    $to = Carbon::parse(urldecode($end))->addSeconds($now->offset);
+
+                    return $instance->getTrassir()->downloadArchiveVideo(
+                        $channelId,
+                        $from,
+                        $to
+                    )->then(function ($content) use ($instance, $from, $to, $channelData) {
+                        return resolve(
+                            new Response(Response::STATUS_OK, [
+                                'Content-Type' => 'application/octet-stream',
+                                'Content-Disposition' => sprintf(
+                                    'attachment; filename="%s %s %s.mp4";',
+                                    $channelData['name'],
+                                    $from->format('Y-m-d H-i-s'),
+                                    $to->format('Y-m-d H-i-s'),
+                                ),
+                            ], $content)
+                        );
+                    });
+                }
+            );
+    }
 
 }

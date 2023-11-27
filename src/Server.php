@@ -20,6 +20,7 @@ use React\EventLoop\Loop;
 use React\EventLoop\LoopInterface;
 use React\Http\HttpServer;
 use React\Http\Message\Response;
+use React\Http\Middleware\StreamingRequestMiddleware;
 use React\Promise\PromiseInterface;
 use React\Socket\SocketServer;
 use Symfony\Component\Console\Command\Command;
@@ -126,6 +127,7 @@ class Server extends Command
         $router = $this->getRouter();
 
         $http = new HttpServer(
+            new StreamingRequestMiddleware(),
             function (ServerRequestInterface $request) use ($router) {
                 $id = uniqid();
                 $this->logger->debug('New request', [
