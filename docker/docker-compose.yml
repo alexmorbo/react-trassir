@@ -1,0 +1,11 @@
+services:
+  react-trassir:
+    container_name: react-trassir
+    restart: unless-stopped
+    image: ghcr.io/alexmorbo/react-trassir:master
+    environment:
+      - TIMEZONE=Europe/Moscow
+    ports:
+      - "8080:8080"
+    volumes:
+      - "./data:/app/data"

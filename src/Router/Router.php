@@ -6,6 +6,9 @@ use Psr\Http\Message\ServerRequestInterface;
 use React\Http\Message\Response;
 use React\Promise\PromiseInterface;
 
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+
+use function React\Promise\reject;
 use function React\Promise\resolve;
 
 class Router
@@ -170,34 +173,27 @@ class Router
 
     public function handle(ServerRequestInterface $request): PromiseInterface
     {
-        $match = $this->resolve($request->getUri()->getPath(), $request->getMethod());
-        if (!$match) {
-            return resolve(
-                Response::json(['status' => 'error', 'error' => 'Route not found'])
-            );
+        try {
+            $match = $this->resolve($request->getUri()->getPath(), $request->getMethod());
+            if (!$match) {
+                throw new NotFoundHttpException('Route not found');
+            }
+
+            $routeItem = $match['item'];
+            $action = $routeItem->action;
+
+            if (!is_callable($action)) {
+                throw new \Exception('Internal Error #1');
+            }
+
+            $response = $action($request, ...array_values($match['params']));
+            if (!$response instanceof PromiseInterface) {
+                throw new \Exception('Internal Error #2');
+            }
+
+            return $response;
+        } catch (\Throwable $e) {
+            return reject($e);
         }
-
-        $routeItem = $match['item'];
-        $action = $routeItem->action;
-
-        if (!is_callable($action)) {
-            return resolve(
-                Response::json(
-                    ['status' => 'error', 'error' => 'Internal Error', 'message' => '#1']
-                )
-            );
-        }
-
-        $response = $action($request, ...array_values($match['params']));
-
-        if (!$response instanceof PromiseInterface) {
-            return resolve(
-                Response::json(
-                    ['status' => 'error', 'error' => 'Internal Error', 'message' => '#2']
-                )
-            );
-        }
-
-        return $response;
     }
 }

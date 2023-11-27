@@ -133,7 +133,7 @@ class InstanceController extends AbstractController
             $request->hasHeader('Content-Type') &&
             $request->getHeaderLine('Content-Type') === 'application/json'
         ) {
-            $input = json_decode($request->getBody()->getContents(), true);
+            $input = json_decode((string)$request->getBody(), true);
             if (json_last_error() !== JSON_ERROR_NONE) {
                 throw new BadRequestHttpException('Invalid JSON');
             }
@@ -309,8 +309,12 @@ class InstanceController extends AbstractController
             );
     }
 
-    public function getChannelArchive(string $instanceId, string $channelId, string $start, string $end): PromiseInterface
-    {
+    public function getChannelArchive(
+        string $instanceId,
+        string $channelId,
+        string $start,
+        string $end
+    ): PromiseInterface {
         return $this->trassirHelper->getInstance($instanceId)
             ->then(
                 function (Instance $instance) use ($channelId) {
