@@ -9,6 +9,7 @@ use AlexMorbo\React\Trassir\TrassirHelper;
 use Carbon\Carbon;
 use Clue\React\SQLite\DatabaseInterface;
 use DateTimeZone;
+use Exception;
 use Fig\Http\Message\StatusCodeInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
@@ -357,7 +358,11 @@ class InstanceController extends AbstractController
                                 ),
                             ], $content)
                         );
-                    });
+                    })->catch(fn(Exception $e) => resolve(Response::json([
+                        'from' => $from->format('Y-m-d H-i-s'),
+                        'to' => $to->format('Y-m-d H-i-s'),
+                        'error' => $e->getMessage()
+                    ])));
                 }
             );
     }
